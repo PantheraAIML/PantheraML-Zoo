@@ -45,3 +45,33 @@ pass
 # Log Unsloth-Zoo Utilities
 os.environ["UNSLOTH_ZOO_IS_PRESENT"] = "1"
 del os
+
+# Multi-GPU and TPU support
+from .device_utils import (
+    DeviceManager,
+    get_device_manager,
+    is_tpu_available,
+    is_distributed,
+    get_device,
+    get_world_size,
+    get_rank,
+    barrier,
+    all_reduce_tensor,
+    setup_distributed,
+)
+
+# Production modules
+from .production_logging import get_logger, setup_production_logging
+from .production_config import ProductionConfig, load_config
+from .error_handling import (
+    ErrorHandler,
+    checkpoint_on_error,
+    with_error_handling,
+    safe_execute,
+)
+from .performance_monitoring import (
+    PerformanceMonitor,
+    get_performance_monitor,
+    monitor_performance,
+    track_metrics,
+)

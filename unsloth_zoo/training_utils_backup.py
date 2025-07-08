@@ -17,7 +17,6 @@
 import torch
 import math
 import datasets
-from contextlib import nullcontext
 from transformers import set_seed as transformers_set_seed
 from transformers import get_scheduler as transformers_get_scheduler
 from transformers import Trainer
@@ -25,23 +24,19 @@ from transformers.trainer_utils import seed_worker as trainer_utils_seed_worker
 from tqdm import tqdm as ProgressBar
 from packaging.version import Version
 import time
-from typing import Any, Optional, List, Dict, Tuple, Union
+from typing import Any, Optional, List, Dict, Tuple
 from .utils import _get_dtype
 from .device_utils import (
-    get_device_manager, setup_distributed
+    get_device_manager, get_device, get_world_size, get_rank,
+    is_tpu_available, is_distributed, barrier, all_reduce_tensor,
+    setup_distributed
 )
-# Production modules
-from .production_logging import get_logger
-from .production_config import load_config
-from .error_handling import ErrorHandler, with_error_handling, safe_execute
-from .performance_monitoring import get_performance_monitor, track_metrics
 import os
 import re
-from contextlib import nullcontext
 
 __all__ = [
     "fix_zero_training_loss",
-    "unsloth_train", 
+    "unsloth_train",
     "prepare_model_for_training",
 ]
 
@@ -52,13 +47,14 @@ def fix_zero_training_loss(model, tokenizer, train_dataset):
     Sometimes the labels get masked by all -100s, causing the loss
     to be 0. We check for this!
     """
-    # All PantheraML Zoo code licensed under LGPLv3
+    # All Unsloth Zoo code licensed under LGPLv3
     if isinstance(train_dataset, datasets.IterableDataset):
         # Skip the check since the code below assumes
         # an indexable dataset
         return
     
     if len(train_dataset) == 0: return
+
 
     row = train_dataset[0]
     if type(row) is dict and "labels" in row:
@@ -98,7 +94,7 @@ pass
 @torch.no_grad
 def prepare_model_for_training(
     model                      : Any,
-    use_gradient_checkpointing : Optional[Union[bool, str]] = "unsloth",
+    use_gradient_checkpointing : Optional = "unsloth",
     use_reentrant              : Optional[bool] = True,
     full_finetuning            : Optional[bool] = False,
     train_layernorms           : Optional[bool] = False,
@@ -106,7 +102,7 @@ def prepare_model_for_training(
     train_lm_head              : Optional[bool] = False,
     float32_mixed_precision    : Optional[bool] = True,
 ) -> Any:
-    # All PantheraML Zoo code licensed under LGPLv3
+    # All Unsloth Zoo code licensed under LGPLv3
     assert(use_gradient_checkpointing in (True, False, "unsloth",))
     assert(type(use_reentrant) is bool)
     assert(type(full_finetuning) is bool)
@@ -131,7 +127,6 @@ def prepare_model_for_training(
         mixed_precision_dtype = torch.float32
         os.environ["UNSLOTH_MIXED_PRECISION"] = "float32"
     pass
-    
     for name, param in model.named_parameters():
         upcast = False
         requires_grad = False
@@ -224,8 +219,7 @@ pass
 def get_max_steps(training_args, n_training_samples, train_dataset):
     # Approximately from https://github.com/huggingface/transformers/blob/main/src/transformers/trainer.py#L2092
     # Determines batch size, max steps, ga etc
-    device_manager = get_device_manager()
-    world_size = device_manager.world_size
+    world_size = get_world_size()
     
     bsz = training_args.per_device_train_batch_size
     ga  = training_args.gradient_accumulation_steps
@@ -271,54 +265,38 @@ class Trainer_Stats:
     metrics: dict
 pass
 
-
 def unsloth_train(trainer):
     """
-    PantheraML Trainer
+    Unsloth Trainer
     1. Fixes gradient accumulation
     2. Scaled down version of HF's trainer
-    3. Multi-GPU and TPU compatible
-    4. Much less feature complete
-    5. Production-ready with monitoring and error handling
+    3. Much less feature complete
     """
-    # All PantheraML Zoo code licensed under LGPLv3
+    # All Unsloth Zoo code licensed under LGPLv3
     assert(hasattr(trainer, "args"))
     assert(hasattr(trainer, "model"))
     assert(hasattr(trainer, "train_dataset"))
     assert(hasattr(trainer, "data_collator"))
 
-    # Setup production modules
-    logger = get_logger(__name__)
-    config = load_config()
-    error_handler = ErrorHandler(logger=logger, config=config)
-    performance_monitor = get_performance_monitor()
-    
-    with error_handler.context(), performance_monitor.training_context():
-        model = trainer.model
-        training_args = trainer.args
-        data_collator = trainer.data_collator
-        n_training_samples = len(trainer.train_dataset)
-        set_training(model)
-        transformers_set_seed(training_args.seed)
+    model = trainer.model
+    training_args = trainer.args
+    data_collator = trainer.data_collator
+    n_training_samples = len(trainer.train_dataset)
+    set_training(model)
+    transformers_set_seed(training_args.seed)
 
-        # Setup distributed training and get device info
-        device_manager = setup_distributed()
-        device = device_manager.device
-        world_size = device_manager.world_size
-        rank = device_manager.rank
-        is_main_process = device_manager.is_main_process
+    # Setup distributed training and get device info
+    device_manager = setup_distributed()
+    device = device_manager.device
+    world_size = device_manager.world_size
+    rank = device_manager.rank
+    is_main_process = device_manager.is_main_process
 
-        # Log training start
-        if is_main_process:
-            logger.info(f"Starting PantheraML training on {world_size} device(s)")
-            logger.info(f"Training samples: {n_training_samples:,}")
-            logger.info(f"Device type: {'TPU' if device_manager.is_tpu else 'CUDA' if torch.cuda.is_available() else 'CPU'}")
-
-        if training_args.dataloader_drop_last:
-            raise NotImplementedError(
-                "PantheraML: Currently `dataloader_drop_last` is not yet implemented!"
-            )
-        pass
+    if training_args.dataloader_drop_last:
+        raise NotImplementedError(
+            "PantheraML: Currently `dataloader_drop_last` is not yet implemented!"
+        )
+    pass
 
     if data_collator is None:
         from transformers import DataCollatorForLanguageModeling
@@ -366,6 +344,10 @@ def unsloth_train(trainer):
     clip_grad_norm_ = torch.nn.utils.clip_grad_norm_
     bsz = training_args.per_device_train_batch_size
     ga  = training_args.gradient_accumulation_steps
+    # inverse_gradient_accumulation_steps = 1.0 / ga
+    # inverse_gradient_accumulation_steps = \
+    #     torch.FloatTensor([inverse_gradient_accumulation_steps])\
+    #     .to(device = "cuda:0", non_blocking = True)[0]
 
     # Mixed precision scaling
     torch_version = torch.__version__
@@ -374,15 +356,9 @@ def unsloth_train(trainer):
         mixed_dtype = torch.float16
         # torch.cuda.amp.autocast is deprecated >= 2.4
         if Version(torch_version) < Version("2.4.0"):
-            if device_manager.is_tpu:
-                float16_scaler = None  # TPU doesn't use GradScaler
-            else:
-                float16_scaler = torch.cuda.amp.GradScaler()
+            float16_scaler = torch.cuda.amp.GradScaler()
         else:
-            if device_manager.is_tpu:
-                float16_scaler = None  # TPU doesn't use GradScaler
-            else:
-                float16_scaler = torch.amp.GradScaler("cuda")
+            float16_scaler = torch.amp.GradScaler("cuda")
     else:
         mixed_precision = "bf16"
         mixed_dtype = torch.bfloat16
@@ -394,41 +370,27 @@ def unsloth_train(trainer):
     # torch.cuda.amp.autocast is deprecated >= 2.4
     torch_version = torch.__version__
     if Version(torch_version) < Version("2.4.0"):
-        if device_manager.is_tpu:
-            # Create a no-op context manager for TPU
-            autocast_context_manager = nullcontext()
-        else:
-            autocast_context_manager = torch.cuda.amp.autocast(
-                dtype = mixed_dtype,
-                cache_enabled = False,
-            )
+        autocast_context_manager = torch.cuda.amp.autocast(
+            dtype = mixed_dtype,
+            cache_enabled = False,
+        )
     else:
-        if device_manager.is_tpu:
-            # Use CPU autocast for TPU
-            autocast_context_manager = torch.amp.autocast(
-                device_type = "cpu",
-                dtype = mixed_dtype,
-                cache_enabled = False,
-            )
-        else:
-            autocast_context_manager = torch.amp.autocast(
-                device_type = "cuda",
-                dtype = mixed_dtype,
-                cache_enabled = False,
-            )
+        autocast_context_manager = torch.amp.autocast(
+            device_type = "cuda",
+            dtype = mixed_dtype,
+            cache_enabled = False,
+        )
     pass
 
     step = 0
-    accumulated_loss = torch.zeros(1, device = device, dtype = torch.float32)[0]
-    
-    device_type = "TPU" if device_manager.is_tpu else "CUDA" if torch.cuda.is_available() else "CPU"
+    accumulated_loss = torch.zeros(1, device = "cuda:0", dtype = torch.float32)[0]
     debug_info = \
-        f'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡠⠤⠤⠤⢤⠤⠔⠒⠦⣄⠀⠀⠀⠀⠀⠀⠀⠀  PantheraML - 2x faster free finetuning | Num {device_type}s = {world_size}\n'\
-        f'⠀⠀⠀⠀⢀⠠⠤⠤⣄⣠⣀⠀⢀⣠⣤⣦⣤⣤⣤⣤⣵⣌⠛⡦⣄⠀⠀⠀⠀⠀  Num examples = {n_training_samples:,} | Num Epochs = {num_train_epochs:,}\n'\
-        f'⠀⠀⠀⢺⣷⣿⣿⡿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣿⣗⣦⣼⣯⡤⢹⣶⣍⠲⢤⣄⠀  Batch size per device = {training_args.per_device_train_batch_size:,} | Gradient Accumulation steps = {training_args.gradient_accumulation_steps}\n'\
-        f'⠀⠀⠀⠀⢿⣿⣿⣿⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣿⠁  Total batch size = {total_train_batch_size:,} | Total steps = {max_steps:,}\n'\
+        f'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡠⠤⠤⠤⢤⠤⠔⠒⠦⣄⠀⠀⠀⠀⠀⠀⠀⠀  PantheraML - 2x faster free finetuning | Num GPUs = {training_args.world_size}\n'\
+        f'⠀⠀⠀⠀⢀⠠⠤⠤⣄⣠⣀⠀⢀⣠⣤⣦⣤⣤⣤⣤⣤⣌⠛⡦⣄⠀⠀⠀⠀⠀  Num examples = {n_training_samples:,} | Num Epochs = {num_train_epochs:,}\n'\
+        f'⠀⠀⠀⢺⣷⣿⣿⡿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣗⣦⣼⣯⡤⢹⣶⣍⠲⢤⣄⠀  Batch size per device = {training_args.per_device_train_batch_size:,} | Gradient Accumulation steps = {training_args.gradient_accumulation_steps}\n'\
+        f'⠀⠀⠀⠀⢿⣿⣿⣿⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣿⠁  Total batch size = {total_train_batch_size:,} | Total steps = {max_steps:,}\n'\
         f'⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀  Number of trainable parameters = {n_parameters_to_train:,}\n'\
-        f'⠀⢠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⠛⣿⡿⠁⠀⠀  Device: {device_type} | Rank: {rank}/{world_size}\n'\
+        f'⠀⢠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⠛⣿⡿⠁⠀⠀\n'\
         f'⠐⣿⣿⣿⣿⣿⣿⣿⣿⡏⣿⣿⣿⣿⣿⣿⣿⣿⠟⣱⣿⠏⠀⠀⠀⠟⠁⠀⠀⠀\n'\
         f'⠀⠈⢿⣿⣿⣿⣿⣿⣿⡇⢿⣿⣿⣿⣿⣿⣿⣿⢰⣿⣏⠀⠀⠀⠀⠀⠀⠀⠀⠀\n'\
         f'⠀⠀⠀⠻⣿⣿⣿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣿⣿⣾⣿⣿⣧⡀⠀⢠⡄⠀⠀⠀⠀\n'\
@@ -439,8 +401,7 @@ def unsloth_train(trainer):
         f'⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n'\
         f'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n'\
         f'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀'
-    if is_main_process:
-        print(debug_info)
+    print(debug_info)
 
     # Get per epoch counter
     max_iters_per_epoch = math.ceil(n_training_samples / total_train_batch_size)
@@ -517,16 +478,7 @@ def unsloth_train(trainer):
                 device_manager.mark_step()
 
                 if step % logging_steps == 0 and is_main_process:
-                    current_loss = accumulated_loss.cpu().item()
-                    progress_bar.write(f"{step}, {round(current_loss, 4)}")
-                    
-                    # Track performance metrics
-                    performance_monitor.track_step_metrics({
-                        'step': step,
-                        'loss': current_loss,
-                        'learning_rate': lr_scheduler.get_last_lr()[0],
-                        'epoch': epoch + (j / max_iters_per_epoch),
-                    })
+                    progress_bar.write(f"{step}, {round(accumulated_loss.cpu().item(), 4)}")
                 pass
                 accumulated_loss.zero_()
                 if is_main_process:
@@ -539,13 +491,7 @@ def unsloth_train(trainer):
     pass
     unset_training(model)
     if is_main_process:
-        logger.info("PantheraML: Finished training!")
         print("PantheraML: Finished training!")
-        
-        # Log final performance metrics
-        performance_metrics = performance_monitor.get_summary()
-        logger.info(f"Training completed - Runtime: {end_time - start_time:.2f}s")
-        logger.info(f"Performance metrics: {performance_metrics}")
     end_time = time.time()
 
     # Return stats
@@ -553,18 +499,65 @@ def unsloth_train(trainer):
     return trainer_stats
 pass
 
-# PantheraML Zoo - Utilities for PantheraML
-# Copyright 2023-present Daniel Han-Chen, Michael Han-Chen & the Unsloth team. All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+def get_device():
+    """Get the appropriate device for training (CUDA, TPU, or CPU)"""
+    if torch.cuda.is_available():
+        return torch.cuda.current_device()
+    try:
+        import torch_xla.core.xla_model as xm
+        return xm.xla_device()
+    except ImportError:
+        return torch.device("cpu")
+
+def is_tpu_available():
+    """Check if TPU is available"""
+    try:
+        import torch_xla.core.xla_model as xm
+        return True
+    except ImportError:
+        return False
+
+def is_distributed():
+    """Check if we're in a distributed training environment"""
+    return dist.is_available() and dist.is_initialized()
+
+def get_world_size():
+    """Get the world size for distributed training"""
+    if is_tpu_available():
+        import torch_xla.core.xla_model as xm
+        return xm.xrt_world_size()
+    elif is_distributed():
+        return dist.get_world_size()
+    else:
+        return 1
+
+def get_rank():
+    """Get the rank for distributed training"""
+    if is_tpu_available():
+        import torch_xla.core.xla_model as xm
+        return xm.get_ordinal()
+    elif is_distributed():
+        return dist.get_rank()
+    else:
+        return 0
+
+def barrier():
+    """Synchronization barrier for distributed training"""
+    if is_tpu_available():
+        import torch_xla.core.xla_model as xm
+        xm.rendezvous("barrier")
+    elif is_distributed():
+        dist.barrier()
+
+def all_reduce_tensor(tensor):
+    """All-reduce a tensor across all processes"""
+    if is_tpu_available():
+        import torch_xla.core.xla_model as xm
+        return xm.all_reduce(xm.REDUCE_SUM, tensor) / get_world_size()
+    elif is_distributed():
+        dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+        return tensor / get_world_size()
+    else:
+        return tensor
+```

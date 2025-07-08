@@ -49,7 +49,7 @@ def patch_Gemma3nConvNormAct_forward():
     new_keys = inspect.signature(forward).parameters
     if old_keys != new_keys:
         if UNSLOTH_ENABLE_LOGGING:
-            print("Unsloth: Failed to patch patch_Gemma3nConvNormAct_forward.")
+            print("PantheraML: Failed to patch patch_Gemma3nConvNormAct_forward.")
     else:
         forward = torch.compile(forward, fullgraph = False, dynamic = True, options = torch_compile_options)
         timm.layers.conv_bn_act.ConvNormAct.forward = forward
@@ -71,7 +71,7 @@ def patch_Gemma3nTextAltUp_functions():
             transformers.models.gemma3n.modeling_gemma3n.Gemma3nTextAltUp.predict = \
                 torch.compile(predict, fullgraph = False, dynamic = True, options = torch_compile_options)
             if UNSLOTH_ENABLE_LOGGING:
-                print("Unsloth: Patched Gemma3nTextAltUp.predict")
+                print("PantheraML: Patched Gemma3nTextAltUp.predict")
     pass
     if hasattr(transformers.models.gemma3n.modeling_gemma3n.Gemma3nTextAltUp, "correct"):
         correct = transformers.models.gemma3n.modeling_gemma3n.Gemma3nTextAltUp.correct

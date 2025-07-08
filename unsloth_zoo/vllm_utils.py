@@ -774,7 +774,17 @@ def create_empty_causal_lm(config, dtype = torch.float16):
         new_config,
         attn_implementation = "eager",
     )
-    new_model = new_model.to(device = "cuda:0", dtype = dtype)
+    # Detect appropriate device
+    if torch.cuda.is_available():
+        device = "cuda:0"
+    else:
+        try:
+            import torch_xla.core.xla_model as xm
+            device = xm.xla_device()
+        except ImportError:
+            device = "cpu"
+    
+    new_model = new_model.to(device = device, dtype = dtype)
     return new_model
 pass
 
@@ -860,7 +870,17 @@ def convert_vllm_to_huggingface(quant_state_dict, config, dtype = torch.float16,
                 # Layer is quantized!
                 quant_state = quant_state_dict[f"{layer_name}.weight.quant_state"]
                 n_layers = config.num_hidden_layers
-                layer = Linear4bit(0, 0, device = "cuda:0", bias = has_bias, compute_dtype = compute_dtype, **kwargs)
+                # Detect appropriate device
+                if torch.cuda.is_available():
+                    device = "cuda:0"
+                else:
+                    try:
+                        import torch_xla.core.xla_model as xm
+                        device = xm.xla_device()
+                    except ImportError:
+                        device = "cpu"
+                        
+                layer = Linear4bit(0, 0, device = device, bias = has_bias, compute_dtype = compute_dtype, **kwargs)
                 layer.in_features  = quant_state.shape[1]
                 layer.out_features = quant_state.shape[0]
                 layer.weight = Params4bit(data = weight, requires_grad = False, **kwargs)

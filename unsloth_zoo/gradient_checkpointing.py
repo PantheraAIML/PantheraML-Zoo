@@ -211,7 +211,7 @@ pass
 
 
 def patch_unsloth_gradient_checkpointing():
-    print("Unsloth: Patched gradient checkpointing for long context finetuning.")
+    print("PantheraML: Patched gradient checkpointing for long context finetuning.")
     import torch.utils
     if torch.utils.checkpoint.checkpoint.__name__ == "unsloth_offloaded_gradient_checkpoint": return
     torch.utils.checkpoint._old_checkpoint = torch.utils.checkpoint.checkpoint
@@ -223,7 +223,7 @@ pass
 
 
 def patch_gradient_checkpointing():
-    print("Unsloth: Patched gradient checkpointing.")
+    print("PantheraML: Patched gradient checkpointing.")
     import torch.utils
     if torch.utils.checkpoint.checkpoint.__name__ == "unsloth_gradient_checkpoint": return
     torch.utils.checkpoint._old_checkpoint = torch.utils.checkpoint.checkpoint
@@ -454,7 +454,7 @@ class UnslothCheckpointFunction(torch.autograd.Function):
 
                         global USE_UNSLOTH_GC
                         if USE_UNSLOTH_GC:
-                            print("Unsloth: Will smartly offload gradients to save VRAM!")
+                            print("PantheraML: Will smartly offload gradients to save VRAM!")
                             USE_UNSLOTH_GC = False
                     else:
                         ctx._saved_metadata = (None, None, None, None, None, None,)

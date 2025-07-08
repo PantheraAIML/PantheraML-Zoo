@@ -247,7 +247,7 @@ def _get_dtype(dtype):
     if   dtype is None or dtype == None: return None
     elif dtype in __DTYPE_MAP: return __DTYPE_MAP[dtype]
     else:
-        print(f"Unsloth: {dtype} is not recognized, so we'll default to None")
+        print(f"PantheraML: {dtype} is not recognized, so we'll default to None")
         return None
     pass
 pass
@@ -298,7 +298,7 @@ class UnslothVisionDataCollator:
             try:
                 self.image_size = model.config.vision_config.image_size
             except:
-                print("Unsloth: Model does not have a default image size - using 512")
+                print("PantheraML: Model does not have a default image size - using 512")
                 self.image_size = 512
         elif resize == "max":
             self.image_size = None

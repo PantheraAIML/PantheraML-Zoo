@@ -1,18 +1,15 @@
 <div align="center">
 
-  <a href="https://unsloth.ai"><picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unslothai/unsloth/main/images/unsloth%20logo%20white%20text.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/unslothai/unsloth/main/images/unsloth%20logo%20black%20text.png">
-    <img alt="unsloth logo" src="https://raw.githubusercontent.com/unslothai/unsloth/main/images/unsloth%20logo%20black%20text.png" height="110" style="max-width: 100%;">
-  </picture></a>
+  <h1>🐾 PantheraML Zoo</h1>
+  <h3>Production-Ready Multi-GPU/TPU Training Utilities</h3>
   
-<a href="https://colab.research.google.com/drive/1Ys44kVvmeZtnICzWz0xgpRnrIOjZAuxp?usp=sharing"><img src="https://raw.githubusercontent.com/unslothai/unsloth/main/images/start free finetune button.png" height="48"></a>
-<a href="https://discord.gg/unsloth"><img src="https://raw.githubusercontent.com/unslothai/unsloth/main/images/Discord button.png" height="48"></a>
-<a href="https://ko-fi.com/unsloth"><img src="https://raw.githubusercontent.com/unslothai/unsloth/main/images/buy me a coffee button.png" height="48"></a>
+  <p>
+    <strong>Supercharged training with automatic device detection, distributed training, and production monitoring</strong>
+  </p>
 
-### Unsloth Zoo - Utils for Unsloth!
+### PantheraML Zoo - Production Utils for High-Performance Training!
 
-![](https://i.ibb.co/sJ7RhGG/image-41.png)
+![PantheraML Training](https://i.ibb.co/sJ7RhGG/image-41.png)
 
 </div>
 
@@ -62,12 +59,148 @@ All notebooks are **beginner friendly**! Add your dataset, click "Run All", and 
 
 ## 💾 Installation Instructions
 
-These are utilities for [Unsloth](https://github.com/unslothai/unsloth), so install Unsloth as well! For stable releases for Unsloth Zoo, use `pip install unsloth_zoo`. We recommend `pip install "unsloth_zoo @ git+https://github.com/unslothai/unsloth-zoo.git"` for most installations though.
+PantheraML Zoo provides production-ready utilities for high-performance training. For stable releases, use `pip install unsloth_zoo`. We recommend `pip install "unsloth_zoo @ git+https://github.com/unslothai/unsloth-zoo.git"` for the latest features.
 
 ```bash
 pip install unsloth_zoo
 ```
 
+**Note:** PantheraML Zoo still builds upon [Unsloth](https://github.com/unslothai/unsloth) for core functionality, so install Unsloth as well!
+
+## 🚀 Multi-GPU and TPU Support
+
+PantheraML now supports distributed training across multiple devices:
+
+### Multi-GPU Training
+
+```python
+from unsloth_zoo.training_utils import unsloth_train
+from unsloth_zoo.device_utils import setup_distributed
+
+# Setup distributed training automatically
+device_manager = setup_distributed()
+
+# Your existing training code works unchanged
+trainer = YourTrainer(model, training_args, train_dataset, ...)
+unsloth_train(trainer)
+```
+
+**Launch with multiple GPUs:**
+```bash
+# Use torchrun for multi-GPU training
+torchrun --nproc_per_node=4 your_training_script.py
+
+# Or use traditional method
+python -m torch.distributed.launch --nproc_per_node=4 your_training_script.py
+```
+
+### TPU Training
+
+```python
+# TPU is detected automatically - no code changes needed!
+# Just run your script normally on a TPU instance
+python your_training_script.py
+```
+
+### Features:
+- ✅ **Automatic device detection** (CUDA, TPU, CPU)
+- ✅ **Distributed gradient synchronization**
+- ✅ **TPU-optimized training loops**
+- ✅ **Mixed precision support** across all devices
+- ✅ **Gradient accumulation** with proper scaling
+- ✅ **Progress tracking** from main process only
+- ✅ **Backward compatibility** with existing code
+
+### Environment Variables:
+```bash
+# For multi-GPU
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+
+# For TPU (on Google Cloud)
+export TPU_NAME=your-tpu-name
+```
+
+### Device Manager API:
+```python
+from unsloth_zoo.device_utils import get_device_manager
+
+dm = get_device_manager()
+print(f"Device: {dm.device}")           # Current device
+print(f"World Size: {dm.world_size}")   # Number of processes
+print(f"Rank: {dm.rank}")               # Current process rank
+print(f"Is TPU: {dm.is_tpu}")           # Running on TPU?
+print(f"Is Main: {dm.is_main_process}") # Main process?
+
+# Move tensors to device
+tensor = dm.to_device(your_tensor)
+
+# Synchronize across processes
+dm.barrier()
+
+# All-reduce tensors
+reduced_tensor = dm.all_reduce(tensor)
+```
+
+## 🏭 Production Features
+
+PantheraML Zoo includes production-ready features for enterprise deployment:
+
+### Production Logging
+```python
+from unsloth_zoo import get_logger, setup_production_logging
+
+# Setup structured logging
+setup_production_logging(level="INFO", format="json")
+logger = get_logger(__name__)
+
+logger.info("Training started", extra={"model": "llama-7b", "batch_size": 16})
+```
+
+### Error Handling & Recovery
+```python
+from unsloth_zoo import ErrorHandler, with_error_handling
+
+# Automatic checkpointing and recovery
+error_handler = ErrorHandler(checkpoint_dir="./checkpoints")
+
+@with_error_handling(error_handler)
+def train_model():
+    # Your training code here
+    pass
+```
+
+### Performance Monitoring
+```python
+from unsloth_zoo import get_performance_monitor, track_metrics
+
+monitor = get_performance_monitor()
+
+with monitor.training_context():
+    # Training automatically tracked
+    train_model()
+    
+# Get comprehensive metrics
+metrics = monitor.get_summary()
+print(f"Throughput: {metrics['tokens_per_second']} tokens/sec")
+```
+
+### Configuration Management
+```python
+from unsloth_zoo import load_config, ProductionConfig
+
+# Load from environment variables and config files
+config = load_config()
+
+# Or define programmatically
+config = ProductionConfig(
+    max_sequence_length=4096,
+    enable_checkpointing=True,
+    checkpoint_frequency=100,
+    enable_performance_monitoring=True
+)
+```
+
+
 ## License
 
-Unsloth Zoo is licensed under the GNU Affero General Public License.
+PantheraML Zoo is licensed under the GNU Affero General Public License.

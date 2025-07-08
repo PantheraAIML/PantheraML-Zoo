@@ -148,7 +148,7 @@ def patch_Gemma3Processor():
     new_keys = inspect.signature(__call__).parameters.keys()
     if old_keys != new_keys:
         if UNSLOTH_ENABLE_LOGGING:
-            print("Unsloth: Failed to patch Gemma3Processor.")
+            print("PantheraML: Failed to patch Gemma3Processor.")
     else:
         transformers.models.gemma3.processing_gemma3.Gemma3Processor.__call__ = __call__
     return
@@ -239,7 +239,7 @@ def patch_Gemma3ForConditionalGeneration_causal_mask():
         new_keys = inspect.signature(_update_causal_mask).parameters
         if old_keys != new_keys:
             if UNSLOTH_ENABLE_LOGGING:
-                print("Unsloth: Failed to patch Gemma3Model.")
+                print("PantheraML: Failed to patch Gemma3Model.")
         else:
             transformers.models.gemma3.modeling_gemma3.Gemma3Model._update_causal_mask = _update_causal_mask
     else:
@@ -247,7 +247,7 @@ def patch_Gemma3ForConditionalGeneration_causal_mask():
         new_keys = inspect.signature(_update_causal_mask).parameters
         if old_keys != new_keys:
             if UNSLOTH_ENABLE_LOGGING:
-                print("Unsloth: Failed to patch Gemma3ForConditionalGeneration._update_causal_mask.")
+                print("PantheraML: Failed to patch Gemma3ForConditionalGeneration._update_causal_mask.")
         else:
             transformers.models.gemma3.modeling_gemma3.Gemma3ForConditionalGeneration._update_causal_mask = _update_causal_mask
     return
@@ -271,7 +271,7 @@ def patch_Gemma3TextScaledWordEmbedding():
     new_keys = inspect.signature(forward).parameters
     if old_keys != new_keys:
         if UNSLOTH_ENABLE_LOGGING:
-            print("Unsloth: Failed to patch Gemma3TextScaledWordEmbedding.")
+            print("PantheraML: Failed to patch Gemma3TextScaledWordEmbedding.")
     else:
         forward = torch.compile(forward, fullgraph = True, dynamic = True, options = torch_compile_options)
         transformers.models.gemma3.modeling_gemma3.Gemma3TextScaledWordEmbedding.forward = forward
@@ -308,7 +308,7 @@ def patch_Gemma3RMSNorm():
     new_keys = inspect.signature(forward).parameters
     if old_keys != new_keys:
         if UNSLOTH_ENABLE_LOGGING:
-            print("Unsloth: Failed to patch Gemma3RMSNorm (adjusted). Signature mismatch.")
+            print("PantheraML: Failed to patch Gemma3RMSNorm (adjusted). Signature mismatch.")
     else:
         forward = torch.compile(forward, fullgraph = True, dynamic = True, options = torch_compile_options)
         transformers.models.gemma3.modeling_gemma3.Gemma3RMSNorm.forward = forward
@@ -343,7 +343,7 @@ def patch_Gemma3MLP():
     old_keys = inspect.signature(original_mlp_forward).parameters
     new_keys = inspect.signature(forward).parameters
     if old_keys != new_keys:
-        if UNSLOTH_ENABLE_LOGGING: print("Unsloth: Failed to patch Gemma3MLP")
+        if UNSLOTH_ENABLE_LOGGING: print("PantheraML: Failed to patch Gemma3MLP")
     else:
         forward = torch.compile(forward, fullgraph = False, dynamic = True, options = torch_compile_options)
         transformers.models.gemma3.modeling_gemma3.Gemma3MLP.forward = forward
@@ -473,12 +473,12 @@ def patch_Gemma3Attention():
 
     if old_keys_sig.parameters != new_keys_sig.parameters or old_keys_sig.return_annotation != new_keys_sig.return_annotation:
         if UNSLOTH_ENABLE_LOGGING:
-            print("Unsloth: Failed to patch Gemma3Attention (adjusted for signature matching). Signature mismatch with original HF method.")
+            print("PantheraML: Failed to patch Gemma3Attention (adjusted for signature matching). Signature mismatch with original HF method.")
     else:
         forward = torch.compiler.disable(forward, recursive = False)
         transformers.models.gemma3.modeling_gemma3.Gemma3Attention.forward = forward
         if UNSLOTH_ENABLE_LOGGING:
-            print("Unsloth: Patched Gemma3Attention.forward (adjusted for signature matching, output fp16).")
+            print("PantheraML: Patched Gemma3Attention.forward (adjusted for signature matching, output fp16).")
     return
 pass
 TEMPORARY_PATCHES.append(patch_Gemma3Attention)

@@ -38,11 +38,11 @@ def patch_compiling_bitsandbytes():
     import bitsandbytes
     if Version(bitsandbytes.__version__) >= Version("0.46.0"):
         if os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1":
-            print("Unsloth: Bitsandbytes >= 0.46.0 supports torch.compile - enabling.")
+            print("PantheraML: Bitsandbytes >= 0.46.0 supports torch.compile - enabling.")
     else:
         # Disable dynamo on Linear4bit, Linear8bit and other future modules
         if os.environ.get("UNSLOTH_ENABLE_LOGGING", "0") == "1":
-            print("Unsloth: Bitsandbytes < 0.46.0 does not support torch.compile - disabling.")
+            print("PantheraML: Bitsandbytes < 0.46.0 does not support torch.compile - disabling.")
         for x in ["bitsandbytes.nn.modules", "peft.tuners.lora.bnb",]:
             exec(f"import {x}", globals(), locals())
             layers = dir(eval(x))
@@ -115,9 +115,9 @@ def patch_torch_compile(debug = False, O3 = False, ignore_errors = True):
         torch._dynamo.config.verbose = False
     pass
     try:
-        print(f"🦥 Unsloth Zoo will now patch everything{DEBUGGING} to make training faster!")
+        print(f"PantheraML Zoo will now patch everything{DEBUGGING} to make training faster!")
     except:
-        print(f"Unsloth Zoo will now patch everything{DEBUGGING} to make training faster!")
+        print(f"PantheraML Zoo will now patch everything{DEBUGGING} to make training faster!")
     pass
 
     os.environ["UNSLOTH_PATCHED"] = "1"
@@ -226,11 +226,11 @@ def patch_model_and_tokenizer(
     try:
         from bitsandbytes.nn  import Linear4bit as Bnb_Linear4bit
     except:
-        raise ImportError("Unsloth: Please install bitsandbytes via `pip install bitsandbytes`")
+        raise ImportError("PantheraML: Please install bitsandbytes via `pip install bitsandbytes`")
     try:
         from peft.tuners.lora import Linear4bit as Peft_Linear4bit
     except:
-        raise ImportError("Unsloth: Please install peft via `pip install peft`")
+        raise ImportError("PantheraML: Please install peft via `pip install peft`")
     pass
 
     # Get most likely the correct data-type of the model
@@ -490,7 +490,7 @@ def check_conversion_mappings(model, current_key_name_str, skip_modules):
                 # skip this pattern but log
                 do_logging = os.environ.get('UNSLOTH_ENABLE_LOGGING', '0') == '1'
                 if do_logging:
-                    print(f"Unsloth: Replace bnb issue: {str(e)}")
+                    print(f"PantheraML: Replace bnb issue: {str(e)}")
                 break
         return any([(skip_key + "." in new_current_key_names_str) or (skip_key == new_current_key_names_str) for skip_key in skip_modules])
     return False
@@ -584,7 +584,7 @@ if hasattr(transformers.integrations.bitsandbytes, "_replace_with_bnb_linear") a
         if '_mark_parent' not in new_source and '_unmark_parent' not in new_source:
             do_logging = os.environ.get('UNSLOTH_ENABLE_LOGGING', '0') == '1'
             if do_logging:
-                print(f"Unsloth: Could not wrap replace_with_bnb_linear but may not be an issue")
+                print(f"PantheraML: Could not wrap replace_with_bnb_linear but may not be an issue")
             mark_parent_error = True
         else:
             source = new_source
@@ -592,7 +592,7 @@ if hasattr(transformers.integrations.bitsandbytes, "_replace_with_bnb_linear") a
     except Exception as e:
         do_logging = os.environ.get('UNSLOTH_ENABLE_LOGGING', '0') == '1'
         if do_logging:
-            print(f"Unsloth: Could not wrap replace_with_bnb_linear but may not be an issue. {str(e)}")
+            print(f"PantheraML: Could not wrap replace_with_bnb_linear but may not be an issue. {str(e)}")
         mark_parent_error = True
 
     if mark_parent_error:

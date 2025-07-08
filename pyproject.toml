@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "unsloth_zoo"
 dynamic = ["version"]
-description = "Utils for Unsloth"
+description = "PantheraML Zoo - Production-ready multi-GPU/TPU training utilities with monitoring, error handling, and performance optimization"
 readme = "README.md"
 requires-python = ">=3.9,<3.13"
 license = "LGPL-3.0-or-later"
-keywords = ["ai", "llm",]
+keywords = ["ai", "llm", "training", "multi-gpu", "tpu", "distributed", "production", "monitoring"]
 authors = [
     {email = "info@unsloth.ai"},
     {name = "Unsloth AI team"},
@@ -19,7 +19,17 @@ maintainers = [
     {name = "Michael Han", email = "info@unsloth.ai"},
 ]
 classifiers = [
-    "Programming Language :: Python",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "torch<=2.7.0",
@@ -44,6 +54,26 @@ dependencies = [
     "pillow",
     "regex",
     "msgspec",
+    # Multi-GPU and TPU support (optional)
+    "torch_xla ; extra == 'tpu'",
+]
+
+[project.optional-dependencies]
+tpu = [
+    "torch_xla>=2.1.0",
+    "cloud-tpu-client",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+    "pre-commit",
+]
+all = [
+    "unsloth_zoo[tpu,dev]",
 ]
 
 [tool.setuptools.dynamic]

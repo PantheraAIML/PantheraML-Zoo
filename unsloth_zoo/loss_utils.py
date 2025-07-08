@@ -80,7 +80,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile = True):
     try:
         import transformers.loss.loss_utils
     except:
-        print("Unsloth: Cannot patch loss functions - update transformers for faster modules!")
+        print("PantheraML: Cannot patch loss functions - update transformers for faster modules!")
         return None
     pass
 
@@ -140,7 +140,7 @@ def patch_loss_functions(_fast_cross_entropy_loss, torch_compile = True):
         transformers.modeling_utils.PreTrainedModel.loss_function = \
             transformers.modeling_utils.PreTrainedModel.loss_function.fget.__wrapped__
     pass
-    print("Unsloth: Patched cross entropy losses.")
+    print("PantheraML: Patched cross entropy losses.")
     os.environ["UNSLOTH_PATCHED"] = "1"
 pass
 

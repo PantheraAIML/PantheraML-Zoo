@@ -287,7 +287,7 @@ def requires_grad_for_gradient_checkpointing(model):
             old_module = module
         module = old_module
     pass
-    print(f"Unsloth: Making `{module_name}` require gradients")
+    print(f"PantheraML: Making `{module_name}` require gradients")
 
     still_need_patching = True
     # Check if input_embeddings exists

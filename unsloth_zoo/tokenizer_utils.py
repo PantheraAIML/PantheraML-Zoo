@@ -89,7 +89,7 @@ def add_new_tokens(
     overlapping_tokens = set(new_tokens) & set(tokenizer.vocab.keys())
     if len(overlapping_tokens) != 0:
         print(
-            f"Unsloth: You're adding new_tokens = {new_tokens}\n"\
+            f"PantheraML: You're adding new_tokens = {new_tokens}\n"\
             f"There are tokens which are overlapping = {list(overlapping_tokens)}\n"\
             f"We shall safely ignore these overlapping tokens."
         )
@@ -143,7 +143,7 @@ def add_new_tokens(
 
     if method == "interpolation":
         print(
-            "Unsloth: You are using interpolation to add new tokens.\n"\
+            "PantheraML: You are using interpolation to add new tokens.\n"\
             f"We shall set new tokens = mean(embeddings)*{1-interpolation} + mean(new_tokens)*{interpolation}"
         )
         for j, token in enumerate(new_tokens):
@@ -401,7 +401,7 @@ def fix_untrained_tokens(model, tokenizer, train_dataset, IGNORED_TOKENIZER_NAME
         token_ids = list(set(final_bad_items))
         tokens = tokenizer.decode(token_ids)
         raise ValueError(
-            f'Unsloth: Untrained tokens in rows [{list(set(which_locations))}] found.\n'\
+            f'PantheraML: Untrained tokens in rows [{list(set(which_locations))}] found.\n'\
             f"The token ids are [{token_ids}] and tokens are [{tokens}].\n"\
             f"The issue is the embed_tokens & lm_head not trainable, which will cause NaNs. "\
             'Restart then add `embed_tokens` & `lm_head` to '\
@@ -442,7 +442,7 @@ def fix_untrained_tokens(model, tokenizer, train_dataset, IGNORED_TOKENIZER_NAME
 
     # Set them to the mean
     print(
-        "Unsloth: Setting embed_tokens & lm_head untrained tokens to "\
+        "PantheraML: Setting embed_tokens & lm_head untrained tokens to "\
         "mean(trained) to counteract NaNs during training."
     )
     embedding_matrix[where_untrained] = mean_embedding.to(embedding_matrix.dtype)

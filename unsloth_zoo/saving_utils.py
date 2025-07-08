@@ -32,6 +32,7 @@ tags:
 - unsloth
 - {model_type}
 - {extra}
+- pantheraml
 license: apache-2.0
 language:
 - en
@@ -45,7 +46,6 @@ language:
 
 This {model_type} model was trained 2x faster with [Unsloth](https://github.com/unslothai/unsloth) and Huggingface's TRL library.
 
-[<img src="https://raw.githubusercontent.com/unslothai/unsloth/main/images/unsloth%20made%20with%20love.png" width="200"/>](https://github.com/unslothai/unsloth)
 """
 
 import torch
@@ -242,7 +242,7 @@ def assert_same_keys(model, new_state_dict):
     pass
     difference = all_original_keys ^ set(new_state_dict)
     if len(difference) != 0:
-        raise RuntimeError(f"Unsloth: Extracted keys = {difference} do not match!")
+        raise RuntimeError(f"PantheraML: Extracted keys = {difference} do not match!")
     pass
 pass
 
@@ -691,7 +691,7 @@ def merge_and_overwrite_lora(
     # --- Handle 4-bit merging first ---
     if save_method == "merged_4bit" or save_method == "forced_merged_4bit":
         base_model = model.base_model if isinstance(model, PeftModel) else model
-        print(f"Unsloth: Merging LoRA weights into 4bit model...")
+        print(f"PantheraML: Merging LoRA weights into 4bit model...")
         if not isinstance(model, PeftModelForCausalLM) or not isinstance(model, PeftModel):
              raise TypeError("Model must be a PeftModelForCausalLM or PeftModel for 'merged_4bit' save.")
         if not getattr(model.config, "quantization_config", None):
@@ -701,23 +701,23 @@ def merge_and_overwrite_lora(
         try:
             # Use the base_model reference which points to the PeftModel's base
             merged_model = base_model.merge_and_unload()
-            print(f"Unsloth: Merging finished.")
+            print(f"PantheraML: Merging finished.")
         except Exception as e:
             raise RuntimeError(f"Failed to merge LoRA weights for 4-bit save: {e}")
 
         # Check for skipped modules (optional but good practice)
         skipped_modules, _ = find_skipped_quantized_modules(merged_model)
         if len(skipped_modules) > 0:
-            print(f"Unsloth: Found skipped modules: {skipped_modules}. Updating config.")
+            print(f"PantheraML: Found skipped modules: {skipped_modules}. Updating config.")
             # Ensure quantization_config exists before modifying
             if not hasattr(merged_model.config, "quantization_config"):
                 merged_model.config.quantization_config = {} # Initialize if somehow missing
             merged_model.config.quantization_config["llm_int8_skip_modules"] = skipped_modules
 
-        print(f"Unsloth: Saving merged 4bit model to {save_directory}...")
+        print(f"PantheraML: Saving merged 4bit model to {save_directory}...")
         try:
             merged_model.save_pretrained(save_directory = save_directory)
-            print(f"Unsloth: Merged 4bit model saved.")
+            print(f"PantheraML: Merged 4bit model saved.")
         except Exception as e:
              raise RuntimeError(f"Failed to save merged 4-bit model: {e}")
 
@@ -727,11 +727,11 @@ def merge_and_overwrite_lora(
 
         # Clean up temp file if created
         if cleanup_temp_file and temp_file is not None:
-            print("Unsloth: Cleaning up temporary file...")
+            print("PantheraML: Cleaning up temporary file...")
             try: temp_file.cleanup()
             except Exception as e: print(f"Warning: Failed to cleanup temp file: {e}")
 
-        print("Unsloth: Merged 4bit model process completed.")
+        print("PantheraML: Merged 4bit model process completed.")
         return save_directory # <<<--- EARLY RETURN for 4-bit path
 
 
@@ -1235,7 +1235,7 @@ def merge_and_dequantize_lora(
             revision = revision,
             commit_description = "Upload Unsloth finetuned model",
         )
-        print(f"Unsloth: Uploaded model to https://huggingface.co/{repo_id}")
+        print(f"PantheraML: Uploaded model to https://huggingface.co/{repo_id}")
         return commit
     pass
     if temp_file is not None:
