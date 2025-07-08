@@ -18,16 +18,29 @@ import torch
 from packaging.version import Version
 import os
 torch_nn_functional_cross_entropy = torch.nn.functional.cross_entropy
-from triton import __version__ as triton_version
+
+# Safe triton import for non-CUDA systems
+try:
+    from triton import __version__ as triton_version
+except ImportError:
+    triton_version = "0.0.0"  # Fallback version for non-triton systems
+
 from . import DEVICE_TYPE
 
 if DEVICE_TYPE == "cuda":
     major, minor = torch.cuda.get_device_capability()
+else:
+    # Set default values for non-CUDA devices
+    major, minor = 0, 0
 
 import inspect
 
 global HAS_CUT_CROSS_ENTROPY
 global UNSLOTH_STUDIO_ENABLED
+
+# Initialize HAS_CUT_CROSS_ENTROPY to False by default
+HAS_CUT_CROSS_ENTROPY = False
+
 import importlib.util
 if importlib.util.find_spec("unsloth_studio") is None:
     UNSLOTH_STUDIO_ENABLED = False
@@ -51,11 +64,9 @@ if DEVICE_TYPE == "cuda":
             HAS_CUT_CROSS_ENTROPY = False
     else:
         HAS_CUT_CROSS_ENTROPY = False
-    pass
-elif DEVICE_TYPE == "xpu":
+elif DEVICE_TYPE in ["xpu", "tpu", "cpu"]:
+    # cut_cross_entropy not supported on non-CUDA devices
     HAS_CUT_CROSS_ENTROPY = False
-else:
-    pass
 pass
 
 __all__ = [
