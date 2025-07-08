@@ -28,13 +28,7 @@ def get_device_type():
         return "cuda"
     elif hasattr(torch, "xpu") and torch.xpu.is_available():
         return "xpu"
-    else:
-        # For development on systems without GPU (like macOS)
-        import os
-        if os.getenv("PANTHERAML_ALLOW_CPU", "0") == "1":
-            return "cpu"
-        else:
-            raise NotImplementedError("PantheraML currently only works on NVIDIA GPUs and Intel GPUs. Set PANTHERAML_ALLOW_CPU=1 for CPU-only development.")
+    raise NotImplementedError("PantheraML currently only works on NVIDIA GPUs and Intel GPUs.")
 pass
 DEVICE_TYPE : str = get_device_type()
 

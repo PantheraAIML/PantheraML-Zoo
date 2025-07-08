@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools>=45", "setuptools-scm>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pantheraml_zoo"
-dynamic = ["version"]
+version = "2025.6.8"
 description = "PantheraML Zoo - Production-ready multi-GPU/TPU training utilities with monitoring, error handling, and performance optimization"
 readme = "README.md"
 requires-python = ">=3.9,<3.13"
@@ -22,7 +22,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -77,15 +76,13 @@ all = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "unsloth_zoo.__init__.__version__"}
-
 [tool.setuptools]
 include-package-data = false
 
 [tool.setuptools.packages.find]
-exclude = ["images*"]
+exclude = ["images*", "tests*"]
 
 [project.urls]
 homepage = "http://www.unsloth.ai"
 documentation = "https://github.com/unslothai/unsloth"
-repository = "https://github.com/unslothai/unsloth"
+repository = "https://github.com/PantheraAIML/PantheraML-Zoo"

@@ -1,0 +1,23 @@
+include README.md
+include LICENSE
+include PRODUCTION_READINESS.md
+include PACKAGE_RENAME_SUMMARY.md
+include pyproject.toml
+
+recursive-include pantheraml_zoo *.py
+recursive-exclude pantheraml_zoo/__pycache__ *
+recursive-exclude pantheraml_zoo *.pyc
+recursive-exclude pantheraml_zoo *.pyo
+
+include production_training_example.py
+include multi_gpu_tpu_example.py
+include test_production_structure.py
+
+exclude test_production_integration.py
+recursive-exclude tests *
+
+global-exclude *.git*
+global-exclude *.DS_Store
+global-exclude __pycache__
+global-exclude *.pyc
+global-exclude *.pyo
