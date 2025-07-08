@@ -350,8 +350,15 @@ def initialize_unsloth_gradient_checkpointing(dtype = None):
         dtype = torch.bfloat16 if SUPPORTS_BFLOAT16 else torch.float16
     pass
 
+    # Check if pin memory is available (requires CUDA)
+    use_pin_memory = DEVICE_TYPE == "cuda" and torch.cuda.is_available()
+    
     for i in range(200):
-        x = torch.empty(128*1024, dtype = dtype, device = "cpu", pin_memory = True)
+        try:
+            x = torch.empty(128*1024, dtype = dtype, device = "cpu", pin_memory = use_pin_memory)
+        except RuntimeError:
+            # Fallback without pin memory if it fails
+            x = torch.empty(128*1024, dtype = dtype, device = "cpu", pin_memory = False)
         CPU_BUFFERS.append(x)
     pass
 
