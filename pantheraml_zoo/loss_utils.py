@@ -164,7 +164,27 @@ def post_patch_loss_function(model):
 pass
 
 
-torch_cuda_device = torch.cuda.device
+def _get_device_context_manager(device):
+    """Get appropriate device context manager based on device type"""
+    if hasattr(device, 'type'):
+        device_type = device.type
+    else:
+        device_type = str(device).split(':')[0]
+    
+    if device_type == "cuda":
+        return torch.cuda.device(device)
+    elif device_type == "xpu":
+        return torch.xpu.device(device)
+    elif device_type.startswith("xla"):
+        # For TPU/XLA, we don't need a special context manager
+        from contextlib import nullcontext
+        return nullcontext()
+    else:
+        # For CPU and other devices
+        from contextlib import nullcontext
+        return nullcontext()
+
+
 def fused_linear_cross_entropy(
     hidden_states      : torch.Tensor,
     lm_weight          : torch.Tensor,
@@ -175,14 +195,14 @@ def fused_linear_cross_entropy(
     logit_softcapping  : float = 0,
     accuracy_threshold : str = "auto",
 ):
-    # All Unsloth Zoo code licensed under LGPLv3
+    # All PantheraML Zoo code licensed under LGPLv3
     if num_items_in_batch is not None and torch.is_tensor(num_items_in_batch):
         num_items_in_batch = num_items_in_batch.to(hidden_states.device, non_blocking = True)
 
     reduction = "sum" if num_items_in_batch is not None else "mean"
     if logit_softcapping == 0: logit_softcapping = None
 
-    with torch_cuda_device(lm_weight.device):
+    with _get_device_context_manager(lm_weight.device):
         loss = linear_cross_entropy(
             hidden_states.to(lm_weight.dtype),
             lm_weight,

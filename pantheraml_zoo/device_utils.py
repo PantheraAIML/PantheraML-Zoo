@@ -180,7 +180,16 @@ def setup_distributed():
     # Initialize distributed training if environment variables are set
     if "RANK" in os.environ and "WORLD_SIZE" in os.environ:
         if not dist.is_initialized():
-            dist.init_process_group(backend="nccl" if torch.cuda.is_available() else "gloo")
+            # Choose appropriate backend based on device type
+            from . import DEVICE_TYPE
+            if DEVICE_TYPE == "cuda":
+                backend = "nccl"
+            elif DEVICE_TYPE == "tpu":
+                backend = "xla"  # XLA backend for TPU
+            else:
+                backend = "gloo"  # Fallback for CPU/XPU
+            
+            dist.init_process_group(backend=backend)
     
     # Refresh device manager to pick up any changes
     global _device_manager

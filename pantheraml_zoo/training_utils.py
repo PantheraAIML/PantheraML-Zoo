@@ -33,8 +33,8 @@ from .device_utils import (
 # Production modules
 from .production_logging import get_logger
 from .production_config import load_config
-from .error_handling import ErrorHandler, with_error_handling, safe_execute
-from .performance_monitoring import get_performance_monitor, track_metrics
+from .error_handling import ErrorHandler, retry_on_failure, safe_device_operation
+from .performance_monitoring import PerformanceMonitor, TrainingMetrics
 import os
 import re
 from contextlib import nullcontext
@@ -291,7 +291,7 @@ def unsloth_train(trainer):
     logger = get_logger(__name__)
     config = load_config()
     error_handler = ErrorHandler(logger=logger, config=config)
-    performance_monitor = get_performance_monitor()
+    performance_monitor = PerformanceMonitor()
     
     with error_handler.context(), performance_monitor.training_context():
         model = trainer.model
@@ -377,12 +377,22 @@ def unsloth_train(trainer):
             if device_manager.is_tpu:
                 float16_scaler = None  # TPU doesn't use GradScaler
             else:
-                float16_scaler = torch.cuda.amp.GradScaler()
+                from . import DEVICE_TYPE
+                if DEVICE_TYPE == "cuda":
+                    float16_scaler = torch.cuda.amp.GradScaler()
+                else:
+                    # For XPU and others, use device-agnostic version
+                    float16_scaler = torch.amp.GradScaler("cpu")
         else:
             if device_manager.is_tpu:
                 float16_scaler = None  # TPU doesn't use GradScaler
             else:
-                float16_scaler = torch.amp.GradScaler("cuda")
+                # Use device-agnostic GradScaler
+                from . import DEVICE_TYPE
+                if DEVICE_TYPE in ["cuda", "xpu"]:
+                    float16_scaler = torch.amp.GradScaler(DEVICE_TYPE)
+                else:
+                    float16_scaler = torch.amp.GradScaler("cpu")
     else:
         mixed_precision = "bf16"
         mixed_dtype = torch.bfloat16

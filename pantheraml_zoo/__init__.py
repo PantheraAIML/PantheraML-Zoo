@@ -24,17 +24,27 @@ del find_spec
 
 def get_device_type():
     import torch
+    
+    # Check for TPU first
+    try:
+        import torch_xla.core.xla_model as xm
+        if xm.xla_device():
+            return "tpu"
+    except ImportError:
+        pass
+    
+    # Check for CUDA
     if hasattr(torch, "cuda") and torch.cuda.is_available():
         return "cuda"
     elif hasattr(torch, "xpu") and torch.xpu.is_available():
         return "xpu"
     else:
-        # For development on systems without GPU (like macOS)
+        # For development on systems without GPU/TPU (like macOS)
         import os
         if os.getenv("PANTHERAML_ALLOW_CPU", "0") == "1":
             return "cpu"
         else:
-            raise NotImplementedError("PantheraML currently only works on NVIDIA GPUs and Intel GPUs. Set PANTHERAML_ALLOW_CPU=1 for CPU-only development.")
+            raise NotImplementedError("PantheraML currently only works on NVIDIA GPUs, Intel GPUs, and TPUs. Set PANTHERAML_ALLOW_CPU=1 for CPU-only development.")
 pass
 DEVICE_TYPE : str = get_device_type()
 
@@ -67,17 +77,17 @@ from .device_utils import (
 )
 
 # Production modules
-from .production_logging import get_logger, setup_production_logging
+from .production_logging import get_logger, setup_logging
 from .production_config import ProductionConfig, load_config
 from .error_handling import (
     ErrorHandler,
-    checkpoint_on_error,
-    with_error_handling,
-    safe_execute,
+    checkpoint_training,
+    retry_on_failure,
+    safe_device_operation,
 )
 from .performance_monitoring import (
     PerformanceMonitor,
-    get_performance_monitor,
-    monitor_performance,
-    track_metrics,
+    TrainingMetrics,
+    memory_monitor,
+    performance_profiler,
 )

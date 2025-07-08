@@ -158,12 +158,25 @@ def patch_torch_compile(debug = False, O3 = False, ignore_errors = True):
         # "config.combo_kernel_foreach_dynamic_shapes = True",
         "config.freezing = False", # Freezes weights --> ** only useful for inference **
         # f"config.triton.multi_kernel = {O3}", # use tuning to pick between different subkernels
-        "config.cuda.enable_cuda_lto = True",
-        "config.cuda.use_fast_math = True",
-        f"config.cuda.compile_opt_level = {'-O2' if O3 else '-O1'}",
         # Capture torch.arange(...), torch.zeros(...)
         "config.capture_dynamic_output_shape_ops = True",
     ]
+    
+    # Add device-specific configurations
+    from . import DEVICE_TYPE
+    if DEVICE_TYPE == "cuda":
+        torch_compile_arguments.extend([
+            "config.cuda.enable_cuda_lto = True",
+            "config.cuda.use_fast_math = True",
+            f"config.cuda.compile_opt_level = {'-O2' if O3 else '-O1'}",
+        ])
+    elif DEVICE_TYPE == "xpu":
+        torch_compile_arguments.extend([
+            "config.xpu.enable_xpu_lto = True",
+            "config.xpu.use_fast_math = True",
+        ])
+    # TPU/XLA will use default optimizations
+    
     # Torch dynamo arguments
     torch_dynamo_arguments = [
         "config.accumulated_cache_size_limit = 1024", # Bump up a bit from 256
@@ -254,7 +267,14 @@ def patch_model_and_tokenizer(
               module.to(torch.float16)
           if "norm" in name:
               module.to(torch.float16)
-          torch.cuda.empty_cache()
+          
+          # Clear device cache based on device type
+          from . import DEVICE_TYPE
+          if DEVICE_TYPE == "cuda":
+              torch.cuda.empty_cache()
+          elif DEVICE_TYPE == "xpu":
+              torch.xpu.empty_cache()
+          # TPU/XLA and CPU don't need explicit cache clearing
 
       # Convert any remaining bfloat16 parameters
       for name, param in model.named_parameters():
@@ -394,10 +414,15 @@ def patch_model_and_tokenizer(
     # Otherwise error will occur on saving models ie use save_model
     if is_tied: model.tie_weights()
 
-    # Clear deleted GPU items
+    # Clear deleted device items
     for _ in range(3):
         gc.collect()
-        torch.cuda.empty_cache()
+        from . import DEVICE_TYPE
+        if DEVICE_TYPE == "cuda":
+            torch.cuda.empty_cache()
+        elif DEVICE_TYPE == "xpu":
+            torch.xpu.empty_cache()
+        # TPU/XLA and CPU don't need explicit cache clearing
     return model, tokenizer
 pass
 

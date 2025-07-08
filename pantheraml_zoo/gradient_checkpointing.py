@@ -45,8 +45,15 @@ if Version(torch_version) < Version("2.4.0"):
     torch_amp_custom_fwd = torch.cuda.amp.custom_fwd
     torch_amp_custom_bwd = torch.cuda.amp.custom_bwd
 else:
-    torch_amp_custom_fwd = torch.amp.custom_fwd(device_type = "cuda")
-    torch_amp_custom_bwd = torch.amp.custom_bwd(device_type = "cuda")
+    # Use device-agnostic amp functions for newer PyTorch versions
+    from . import DEVICE_TYPE
+    if DEVICE_TYPE in ["cuda", "xpu"]:
+        torch_amp_custom_fwd = torch.amp.custom_fwd(device_type = DEVICE_TYPE)
+        torch_amp_custom_bwd = torch.amp.custom_bwd(device_type = DEVICE_TYPE)
+    else:
+        # For TPU/XLA and other devices, use default (CPU) behavior
+        torch_amp_custom_fwd = torch.amp.custom_fwd(device_type = "cpu")
+        torch_amp_custom_bwd = torch.amp.custom_bwd(device_type = "cpu")
 pass
 
 
@@ -300,6 +307,14 @@ if DEVICE_TYPE == "cuda":
     torch_gpu_stream = torch.cuda.stream
 elif DEVICE_TYPE == "xpu":
     torch_gpu_stream = torch.xpu.stream
+elif DEVICE_TYPE == "tpu":
+    # For TPU/XLA, we don't need streams, use a no-op context manager
+    from contextlib import nullcontext
+    torch_gpu_stream = lambda device: nullcontext()
+else:
+    # For CPU and other devices
+    from contextlib import nullcontext
+    torch_gpu_stream = lambda device: nullcontext()
 
 CPU_BUFFERS = []
 CPU_INDEX = None
@@ -326,6 +341,12 @@ def initialize_unsloth_gradient_checkpointing(dtype = None):
             SUPPORTS_BFLOAT16 = (major_version >= 8)
         elif DEVICE_TYPE == "xpu":
             SUPPORTS_BFLOAT16 = True
+        elif DEVICE_TYPE == "tpu":
+            # TPUs typically support bfloat16
+            SUPPORTS_BFLOAT16 = True
+        else:
+            # For CPU and other devices, use float16 as fallback
+            SUPPORTS_BFLOAT16 = False
         dtype = torch.bfloat16 if SUPPORTS_BFLOAT16 else torch.float16
     pass
 
@@ -334,16 +355,37 @@ def initialize_unsloth_gradient_checkpointing(dtype = None):
         CPU_BUFFERS.append(x)
     pass
 
-    # Allocate buffers to how many GPUs
-    n_gpus = torch.cuda.device_count() if DEVICE_TYPE == "cuda" else torch.xpu.device_count()
-    GPU_BUFFERS = tuple([torch.empty(2*256*2048, dtype = dtype, device = f"{DEVICE_TYPE}:{i}") for i in range(n_gpus)])
+    # Allocate buffers to how many devices
+    if DEVICE_TYPE == "cuda":
+        n_devices = torch.cuda.device_count()
+    elif DEVICE_TYPE == "xpu":
+        n_devices = torch.xpu.device_count()
+    elif DEVICE_TYPE == "tpu":
+        # For TPU, use XLA device count
+        try:
+            import torch_xla.core.xla_model as xm
+            n_devices = xm.xrt_world_size()
+        except ImportError:
+            n_devices = 1
+    else:
+        # For CPU and other devices
+        n_devices = 1
+    
+    GPU_BUFFERS = tuple([torch.empty(2*256*2048, dtype = dtype, device = f"{DEVICE_TYPE}:{i}" if DEVICE_TYPE in ["cuda", "xpu"] else DEVICE_TYPE) for i in range(n_devices)])
 
     BACKWARD_PASS = True
-    EXTRA_STREAMS = tuple([torch.cuda.Stream() if DEVICE_TYPE == "cuda" else torch.xpu.Stream() for i in range(n_gpus)])
+    
+    # Create device streams
     if DEVICE_TYPE == "cuda":
-        MAIN_STREAMS  = tuple([torch.cuda.default_stream(torch.device(f"cuda:{i}")) for i in range(n_gpus)])
+        EXTRA_STREAMS = tuple([torch.cuda.Stream() for i in range(n_devices)])
+        MAIN_STREAMS  = tuple([torch.cuda.default_stream(torch.device(f"cuda:{i}")) for i in range(n_devices)])
     elif DEVICE_TYPE == "xpu":
-        MAIN_STREAMS  = tuple([torch.xpu.current_stream(torch.device(f"xpu:{i}")) for i in range(n_gpus)])
+        EXTRA_STREAMS = tuple([torch.xpu.Stream() for i in range(n_devices)])
+        MAIN_STREAMS  = tuple([torch.xpu.current_stream(torch.device(f"xpu:{i}")) for i in range(n_devices)])
+    else:
+        # For TPU and other devices, use None streams
+        EXTRA_STREAMS = tuple([None for i in range(n_devices)])
+        MAIN_STREAMS  = tuple([None for i in range(n_devices)])
 
     # Minimum size to enable Unsloth GC is 2MB -> 32 layers = 64MB
     n_bytes = torch.finfo(dtype).bits // 8

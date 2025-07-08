@@ -53,8 +53,7 @@ dependencies = [
     "pillow",
     "regex",
     "msgspec",
-    # Multi-GPU and TPU support (optional)
-    "torch_xla ; extra == 'tpu'",
+    "pyyaml",  # For configuration management
 ]
 
 [project.optional-dependencies]
@@ -72,7 +71,7 @@ dev = [
     "pre-commit",
 ]
 all = [
-    "unsloth_zoo[tpu,dev]",
+    "pantheraml_zoo[tpu,dev]",
 ]
 
 [tool.setuptools.dynamic]

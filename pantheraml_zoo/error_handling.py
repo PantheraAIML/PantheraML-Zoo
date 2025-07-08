@@ -24,14 +24,21 @@ class ErrorHandler:
         self.retry_delay = retry_delay
         self.logger = get_logger("error_handler")
     
-    def handle_cuda_oom(self, func: Callable, *args, **kwargs):
-        """Handle CUDA out of memory errors"""
+    def handle_device_oom(self, func: Callable, *args, **kwargs):
+        """Handle device out of memory errors (CUDA, XPU, etc.)"""
         try:
             return func(*args, **kwargs)
         except RuntimeError as e:
             if "out of memory" in str(e).lower():
-                self.logger.warning("CUDA OOM detected, attempting recovery...")
-                torch.cuda.empty_cache()
+                self.logger.warning("Device OOM detected, attempting recovery...")
+                
+                # Clear device cache based on device type
+                from . import DEVICE_TYPE
+                if DEVICE_TYPE == "cuda":
+                    torch.cuda.empty_cache()
+                elif DEVICE_TYPE == "xpu":
+                    torch.xpu.empty_cache()
+                # TPU/XLA handles memory automatically
                 
                 # Try with reduced batch size if possible
                 if 'batch_size' in kwargs:
@@ -140,8 +147,16 @@ def safe_device_operation(func: Callable) -> Callable:
         except RuntimeError as e:
             logger = get_logger("device_ops")
             if "out of memory" in str(e).lower():
-                logger.warning("CUDA OOM in device operation, clearing cache...")
-                torch.cuda.empty_cache()
+                logger.warning("Device OOM in operation, clearing cache...")
+                
+                # Clear device cache based on device type
+                from . import DEVICE_TYPE
+                if DEVICE_TYPE == "cuda":
+                    torch.cuda.empty_cache()
+                elif DEVICE_TYPE == "xpu":
+                    torch.xpu.empty_cache()
+                # TPU/XLA handles memory automatically
+                
                 raise
             elif "device" in str(e).lower():
                 logger.error(f"Device error in operation: {e}")
