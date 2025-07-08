@@ -33,7 +33,7 @@ from transformers import (
 from datasets import Dataset
 
 # PantheraML Zoo imports
-from unsloth_zoo import (
+from pantheraml_zoo import (
     # Device management
     setup_distributed,
     get_device_manager,

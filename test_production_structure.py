@@ -223,7 +223,7 @@ def test_file_structure():
     print("\n🧪 Testing file structure...")
     
     try:
-        base_path = Path("/Users/aayanmishra/unsloth-zoo/unsloth_zoo")
+        base_path = Path("/Users/aayanmishra/unsloth-zoo/pantheraml_zoo")
         
         required_files = [
             "production_logging.py",

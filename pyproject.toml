@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "unsloth_zoo"
+name = "pantheraml_zoo"
 dynamic = ["version"]
 description = "PantheraML Zoo - Production-ready multi-GPU/TPU training utilities with monitoring, error handling, and performance optimization"
 readme = "README.md"

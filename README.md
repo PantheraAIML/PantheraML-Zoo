@@ -59,10 +59,10 @@ All notebooks are **beginner friendly**! Add your dataset, click "Run All", and 
 
 ## 💾 Installation Instructions
 
-PantheraML Zoo provides production-ready utilities for high-performance training. For stable releases, use `pip install unsloth_zoo`. We recommend `pip install "unsloth_zoo @ git+https://github.com/unslothai/unsloth-zoo.git"` for the latest features.
+PantheraML Zoo provides production-ready utilities for high-performance training. For stable releases, use `pip install pantheraml_zoo`. We recommend `pip install "pantheraml_zoo @ git+https://github.com/unslothai/unsloth-zoo.git"` for the latest features.
 
 ```bash
-pip install unsloth_zoo
+pip install pantheraml_zoo
 ```
 
 **Note:** PantheraML Zoo still builds upon [Unsloth](https://github.com/unslothai/unsloth) for core functionality, so install Unsloth as well!
@@ -74,8 +74,8 @@ PantheraML now supports distributed training across multiple devices:
 ### Multi-GPU Training
 
 ```python
-from unsloth_zoo.training_utils import unsloth_train
-from unsloth_zoo.device_utils import setup_distributed
+from pantheraml_zoo.training_utils import unsloth_train
+from pantheraml_zoo.device_utils import setup_distributed
 
 # Setup distributed training automatically
 device_manager = setup_distributed()
@@ -122,7 +122,7 @@ export TPU_NAME=your-tpu-name
 
 ### Device Manager API:
 ```python
-from unsloth_zoo.device_utils import get_device_manager
+from pantheraml_zoo.device_utils import get_device_manager
 
 dm = get_device_manager()
 print(f"Device: {dm.device}")           # Current device
@@ -147,7 +147,7 @@ PantheraML Zoo includes production-ready features for enterprise deployment:
 
 ### Production Logging
 ```python
-from unsloth_zoo import get_logger, setup_production_logging
+from pantheraml_zoo import get_logger, setup_production_logging
 
 # Setup structured logging
 setup_production_logging(level="INFO", format="json")
@@ -158,7 +158,7 @@ logger.info("Training started", extra={"model": "llama-7b", "batch_size": 16})
 
 ### Error Handling & Recovery
 ```python
-from unsloth_zoo import ErrorHandler, with_error_handling
+from pantheraml_zoo import ErrorHandler, with_error_handling
 
 # Automatic checkpointing and recovery
 error_handler = ErrorHandler(checkpoint_dir="./checkpoints")
@@ -171,7 +171,7 @@ def train_model():
 
 ### Performance Monitoring
 ```python
-from unsloth_zoo import get_performance_monitor, track_metrics
+from pantheraml_zoo import get_performance_monitor, track_metrics
 
 monitor = get_performance_monitor()
 
@@ -186,7 +186,7 @@ print(f"Throughput: {metrics['tokens_per_second']} tokens/sec")
 
 ### Configuration Management
 ```python
-from unsloth_zoo import load_config, ProductionConfig
+from pantheraml_zoo import load_config, ProductionConfig
 
 # Load from environment variables and config files
 config = load_config()

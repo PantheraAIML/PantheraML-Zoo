@@ -4,7 +4,7 @@ import torch
 import os
 from unittest.mock import patch, MagicMock
 
-from unsloth_zoo.device_utils import (
+from pantheraml_zoo.device_utils import (
     DeviceManager, get_device_manager, is_tpu_available,
     is_distributed, get_device, get_world_size, get_rank,
     barrier, all_reduce_tensor, setup_distributed

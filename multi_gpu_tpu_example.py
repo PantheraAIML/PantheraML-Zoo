@@ -3,8 +3,8 @@
 
 import torch
 from transformers import TrainingArguments
-from unsloth_zoo.training_utils import unsloth_train
-from unsloth_zoo.device_utils import setup_distributed, get_device_manager
+from pantheraml_zoo.training_utils import unsloth_train
+from pantheraml_zoo.device_utils import setup_distributed, get_device_manager
 
 def main():
     # Setup distributed training

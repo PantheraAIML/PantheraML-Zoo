@@ -121,7 +121,7 @@ PantheraML Zoo has been successfully refactored from Unsloth Zoo to be a product
 
 ### Basic Multi-GPU Training
 ```python
-from unsloth_zoo import setup_distributed, unsloth_train
+from pantheraml_zoo import setup_distributed, unsloth_train
 
 # Automatic device detection and setup
 device_manager = setup_distributed()
@@ -133,7 +133,7 @@ stats = unsloth_train(trainer)
 
 ### Production Training with Monitoring
 ```python
-from unsloth_zoo import (
+from pantheraml_zoo import (
     setup_production_logging, get_logger, load_config,
     ErrorHandler, get_performance_monitor, unsloth_train
 )

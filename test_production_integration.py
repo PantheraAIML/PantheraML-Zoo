@@ -28,7 +28,7 @@ def test_imports():
     
     try:
         # Core imports
-        from unsloth_zoo import (
+        from pantheraml_zoo import (
             setup_distributed,
             get_device_manager,
             setup_production_logging,
@@ -49,7 +49,7 @@ def test_device_management():
     print("\n🧪 Testing device management...")
     
     try:
-        from unsloth_zoo import setup_distributed, get_device_manager
+        from pantheraml_zoo import setup_distributed, get_device_manager
         
         # Setup distributed (should work even with single device)
         device_manager = setup_distributed()
@@ -82,7 +82,7 @@ def test_production_logging():
     print("\n🧪 Testing production logging...")
     
     try:
-        from unsloth_zoo import setup_production_logging, get_logger
+        from pantheraml_zoo import setup_production_logging, get_logger
         
         # Test different log formats
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -123,7 +123,7 @@ def test_configuration():
     print("\n🧪 Testing configuration management...")
     
     try:
-        from unsloth_zoo import ProductionConfig, load_config
+        from pantheraml_zoo import ProductionConfig, load_config
         
         # Test default config
         config = ProductionConfig()
@@ -158,7 +158,7 @@ def test_error_handling():
     print("\n🧪 Testing error handling...")
     
     try:
-        from unsloth_zoo import ErrorHandler, get_logger, ProductionConfig
+        from pantheraml_zoo import ErrorHandler, get_logger, ProductionConfig
         
         logger = get_logger("test_error_handler")
         config = ProductionConfig()
@@ -194,7 +194,7 @@ def test_performance_monitoring():
     print("\n🧪 Testing performance monitoring...")
     
     try:
-        from unsloth_zoo import get_performance_monitor
+        from pantheraml_zoo import get_performance_monitor
         
         monitor = get_performance_monitor()
         
@@ -231,7 +231,7 @@ def test_integration():
     print("\n🧪 Testing full integration...")
     
     try:
-        from unsloth_zoo import (
+        from pantheraml_zoo import (
             setup_distributed,
             setup_production_logging,
             get_logger,
