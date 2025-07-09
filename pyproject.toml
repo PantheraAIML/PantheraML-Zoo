@@ -1,6 +1,7 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools-scm>=6.2", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
 
 [project]
 name = "pantheraml_zoo"
@@ -11,12 +12,11 @@ requires-python = ">=3.9,<3.14"
 license = "LGPL-3.0-or-later"
 keywords = ["ai", "llm", "training", "multi-gpu", "tpu", "distributed", "production", "monitoring"]
 authors = [
-    {email = "info@unsloth.ai"},
-    {name = "Unsloth AI team"},
+    {email = "oss.panthera@aayanmishra.com"},
+    {name = "Panthera AI team"},
 ]
 maintainers = [
-    {name = "Daniel Han", email = "danielhanchen@gmail.com"},
-    {name = "Michael Han", email = "info@unsloth.ai"},
+    {name = "Aayan Mishra", email = "aayan.panthera@aayanmishra.com"},
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
