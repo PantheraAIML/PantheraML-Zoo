@@ -7,7 +7,7 @@ name = "pantheraml_zoo"
 version = "2025.6.8"
 description = "PantheraML Zoo - Production-ready multi-GPU/TPU training utilities with monitoring, error handling, and performance optimization"
 readme = "README.md"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9,<3.14"
 license = "LGPL-3.0-or-later"
 keywords = ["ai", "llm", "training", "multi-gpu", "tpu", "distributed", "production", "monitoring"]
 authors = [
@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
