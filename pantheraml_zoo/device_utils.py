@@ -45,13 +45,14 @@ class DeviceManager:
     
     def _detect_environment(self):
         """Detect the current training environment"""
-        # Check for TPU
+        # Check for TPU/XLA
         try:
             import torch_xla.core.xla_model as xm
             self._is_tpu = True
-            self._device = xm.xla_device()
+            self._device = xm.xla_device()  # This returns the proper XLA device string
             self._world_size = xm.xrt_world_size()
             self._rank = xm.get_ordinal()
+            self._is_distributed = self._world_size > 1
         except ImportError:
             self._is_tpu = False
             
@@ -61,7 +62,9 @@ class DeviceManager:
                 self._world_size = dist.get_world_size()
                 self._rank = dist.get_rank()
                 if torch.cuda.is_available():
-                    self._device = torch.cuda.current_device()
+                    self._device = torch.device(f"cuda:{torch.cuda.current_device()}")
+                elif hasattr(torch, "xpu") and torch.xpu.is_available():
+                    self._device = torch.device(f"xpu:{torch.xpu.current_device()}")
                 else:
                     self._device = torch.device("cpu")
             else:
@@ -70,6 +73,8 @@ class DeviceManager:
                 self._rank = 0
                 if torch.cuda.is_available():
                     self._device = torch.device("cuda:0")
+                elif hasattr(torch, "xpu") and torch.xpu.is_available():
+                    self._device = torch.device("xpu:0")
                 else:
                     self._device = torch.device("cpu")
     
@@ -102,6 +107,16 @@ class DeviceManager:
     def is_main_process(self) -> bool:
         """Check if this is the main process"""
         return self._rank == 0
+    
+    @property
+    def device_type(self) -> str:
+        """Get the device type string"""
+        if self._is_tpu:
+            return "xla"  # TPUs use XLA device type
+        elif isinstance(self._device, torch.device):
+            return self._device.type
+        else:
+            return str(self._device).split(":")[0]  # Handle string device representations
     
     def barrier(self):
         """Synchronization barrier"""

@@ -28,8 +28,8 @@ def get_device_type():
     # Check for TPU first
     try:
         import torch_xla.core.xla_model as xm
-        if xm.xla_device():
-            return "tpu"
+        # Just check if XLA is available, don't call xla_device() yet
+        return "xla"  # Use "xla" instead of "tpu" to match PyTorch device types
     except ImportError:
         pass
     
@@ -50,7 +50,7 @@ DEVICE_TYPE : str = get_device_type()
 
 import os
 if not ("UNSLOTH_IS_PRESENT" in os.environ):
-    raise ImportError("Please install Unsloth via `pip install unsloth`!")
+    raise ImportError("Please install PantheraML! via `pip install pantheraml` or `pip install git+https://github.com/PantheraAIML/PantheraML.git`!")
 pass
 
 try:
